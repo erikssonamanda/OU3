@@ -1,0 +1,83 @@
+@startuml
+hide empty description
+[*] --> Q1
+Q1 : Create sockets
+Q1 : Send STUN_LOOKUP to tracker
+Q1 --> Q2
+
+Q2 --> Q3 : STUN_RESPONSE
+
+Q3 : Init self_address
+Q3 : Send NET_GET_NODE to tracker
+Q3 --> Q4 : NET_GET_NODE_RESPONSE (Empty)
+Q3 --> Q7 : NET_GET_NODE_RESPONSE (Not empty)
+
+Q4 : Initialize table to network size
+Q4 --> Q6
+
+Q5 : Connect to successor
+Q5 : Send NET_JOIN_RESPONSE
+Q5 : Transfer upper half of entry-range to successor
+Q5 : Accept predecessor
+Q5 : Return to Q6
+
+note left of Q6 : Fully connected
+Q6 : Start sending NET_ALIVE to tracker
+Q6 --> Q9 : VAL_INSERT/LOOKUP/REMOVE
+Q6 --> Q10 : Shutdown requested
+Q6 --> Q12 : NET_JOIN
+Q6 --> Q15 : NET_NEW_RAGE
+Q6 --> Q16 : NET_LEAVING_PDU
+Q6 --> Q17 : NET_CLOSE_CONNECTION
+
+
+Q7 : Send NET_JOIN to node in NET_GET_NODE_RESPONSE
+Q7 : Accept predecessor
+Q7 --> Q8 : NET_JOIN_RESPONSE
+
+Q8 : Initialize table
+Q8 : Connect to successor
+Q8 --> Q6
+
+Q9 : If HASH(entry) ∈ node -> Store/Respond/Delete
+Q9 : If HASH(entry) ∉ node -> Forward
+Q9 : Return to Q6
+
+
+Q10 --> Q11 : If node is connected
+Q10 --> [*] : If node is not connected
+
+Q11 : Send NET_NEW_RANGE to predecessor or successor
+Q11 --> Q18 : NET_NEW_RANGE_RESPONSE
+
+Q12 : Update PDU max fields
+Q12 --> Q5 : If node not connected
+Q12 --> Q13 : If node = max_node
+Q12 --> Q14 : If node ≠ max_node
+
+Q13 : Send NET_CLOSE_CONNECTION to successor
+Q13 : Connect to prospect
+Q13 : Send NET_JOIN_RESPONSE to prospect
+Q13 : Transfer upper half of entry-range to successor
+Q13 : Return to Q6
+
+Q14 : Forward NET_JOIN
+Q14 : Return to Q6
+
+Q15 : Update hash-range
+Q15 : Return to Q6
+
+Q16 : Disconnect from successor
+Q16 : Connect to new successor
+Q16 : Return to Q6
+
+Q17 : Disconnect from predecessor
+Q17 : If predecesor ≠ succesor, accept new predecessor
+Q17 : Return to Q6
+
+
+Q18 : Transfer entries to predecessor or successor
+Q18 : Send NET_CLOSE_CONNECTION to successor
+Q18 : Send NET_LEAVING to predecessor
+Q18 --> [*]
+@enduml
